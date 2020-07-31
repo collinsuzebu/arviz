@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>arviz.plots.distcomparisonplot &#8212; ArviZ dev documentation</title>
+    <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+    <link rel="author" title="About these documents" href="../../../about.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../../../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../../../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../../../_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../../../index.html"><span><img src="../../../_static/logo.png"></span>
+           </a>
+        <span class="navbar-text navbar-version pull-left"><b>dev</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="../../../examples/index.html">Gallery</a></li>
+                <li><a href="../../../notebooks/Introduction.html">Quickstart</a></li>
+                <li><a href="../../../notebooks/InferenceDataCookbook.html">Cookbook</a></li>
+                <li><a href="../../../notebooks/XarrayforArviZ.html">InferenceData</a></li>
+                <li><a href="../../../notebooks/Numba.html">Numba</a></li>
+                <li><a href="../../../api.html">API</a></li>
+                <li><a href="../../../usage.html">Usage</a></li>
+                <li><a href="../../../about.html">About</a></li>
+            
+            
+              
+              
+            
+            
+            
+                <a class="icon" href="https://github.com/arviz-devs/arviz">
+                    <img src="../../../_static/GitHub-Mark-32px.png"
+                    style="position: absolute; top: 15px; right: 30px; border: 0;"></a>
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="body col-md-12 content" role="main">
+      
+  <h1>Source code for arviz.plots.distcomparisonplot</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Density Comparison plot.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">.plot_utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">xarray_var_iter</span><span class="p">,</span>
+    <span class="n">_scale_fig_size</span><span class="p">,</span>
+    <span class="n">get_plotting_function</span><span class="p">,</span>
+    <span class="n">vectorized_to_hex</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">_var_names</span><span class="p">,</span> <span class="n">get_coords</span>
+<span class="kn">from</span> <span class="nn">..rcparams</span> <span class="kn">import</span> <span class="n">rcParams</span>
+
+
+<div class="viewcode-block" id="plot_dist_comparison"><a class="viewcode-back" href="../../../generated/arviz.plot_dist_comparison.html#arviz.plot_dist_comparison">[docs]</a><span class="k">def</span> <span class="nf">plot_dist_comparison</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">,</span>
+    <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;latent&quot;</span><span class="p">,</span>
+    <span class="n">figsize</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">textsize</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">var_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">coords</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">transform</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">legend</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">prior_kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">posterior_kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">observed_kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">backend</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">backend_kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">show</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Plot to compare fitted and unfitted distributions.</span>
+
+<span class="sd">    The resulting plots will show the compared distributions both on</span>
+<span class="sd">    separate axes (particularly useful when one of them is substantially tighter</span>
+<span class="sd">    than another), and plotted together, so three plots per distribution</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data : az.InferenceData object</span>
+<span class="sd">        InferenceData object containing the posterior/prior data.</span>
+<span class="sd">    kind : str</span>
+<span class="sd">        kind of plot to display {&quot;latent&quot;, &quot;observed&quot;}, defaults to &#39;latent&#39;.</span>
+<span class="sd">        &quot;latent&quot; includes {&quot;prior&quot;, &quot;posterior&quot;} and &quot;observed&quot; includes</span>
+<span class="sd">        {&quot;observed_data&quot;, &quot;prior_predictive&quot;, &quot;posterior_predictive&quot;}</span>
+<span class="sd">    figsize : tuple</span>
+<span class="sd">        Figure size. If None it will be defined automatically.</span>
+<span class="sd">    textsize: float</span>
+<span class="sd">        Text size scaling factor for labels, titles and lines. If None it will be</span>
+<span class="sd">        autoscaled based on figsize.</span>
+<span class="sd">    var_names : str, list, list of lists</span>
+<span class="sd">        if str, plot the variable. if list, plot all the variables in list</span>
+<span class="sd">        of all groups. if list of lists, plot the vars of groups in respective lists.</span>
+<span class="sd">    coords : dict</span>
+<span class="sd">        Dictionary mapping dimensions to selected coordinates to be plotted.</span>
+<span class="sd">        Dimensions without a mapping specified will include all coordinates for</span>
+<span class="sd">        that dimension.</span>
+<span class="sd">    transform : callable</span>
+<span class="sd">        Function to transform data (defaults to None i.e. the identity function)</span>
+<span class="sd">    legend : bool</span>
+<span class="sd">        Add legend to figure. By default True.</span>
+<span class="sd">    ax: axes, optional</span>
+<span class="sd">        Matplotlib axes: The ax argument should have shape (nvars, 3), where the</span>
+<span class="sd">        last column is for the combined before/after plots and columns 0 and 1 are</span>
+<span class="sd">        for the before and after plots, respectively.</span>
+<span class="sd">    prior_kwargs : dicts, optional</span>
+<span class="sd">        Additional keywords passed to `arviz.plot_dist` for prior/predictive groups.</span>
+<span class="sd">    posterior_kwargs : dicts, optional</span>
+<span class="sd">        Additional keywords passed to `arviz.plot_dist` for posterior/predictive groups.</span>
+<span class="sd">    observed_kwargs : dicts, optional</span>
+<span class="sd">        Additional keywords passed to `arviz.plot_dist` for observed_data group.</span>
+<span class="sd">    backend: str, optional</span>
+<span class="sd">        Select plotting backend {&quot;matplotlib&quot;,&quot;bokeh&quot;}. Default &quot;matplotlib&quot;.</span>
+<span class="sd">    backend_kwargs: bool, optional</span>
+<span class="sd">        These are kwargs specific to the backend being used. For additional documentation</span>
+<span class="sd">        check the plotting method of the backend.</span>
+<span class="sd">    show : bool, optional</span>
+<span class="sd">        Call backend show function.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    axes : a numpy 2d array of matplotlib axes. Returned object will have shape (nvars, 3),</span>
+<span class="sd">    where the last column is the combined plot and the first columns are the single plots.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    Plot the prior/posterior plot for specified vars and coords.</span>
+
+<span class="sd">    .. plot::</span>
+<span class="sd">        :context: close-figs</span>
+
+<span class="sd">        &gt;&gt;&gt; import arviz as az</span>
+<span class="sd">        &gt;&gt;&gt; data = az.load_arviz_data(&#39;rugby&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; az.plot_dist_comparison(data, var_names=[&quot;defs&quot;], coords={&quot;team&quot; : [&quot;Italy&quot;]})</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">all_groups</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;prior&quot;</span><span class="p">,</span> <span class="s2">&quot;posterior&quot;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;observed&quot;</span><span class="p">:</span>
+        <span class="n">all_groups</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;observed_data&quot;</span><span class="p">,</span> <span class="s2">&quot;prior_predictive&quot;</span><span class="p">,</span> <span class="s2">&quot;posterior_predictive&quot;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">coords</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">if</span> <span class="n">prior_kwargs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">prior_kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">if</span> <span class="n">posterior_kwargs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">posterior_kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">if</span> <span class="n">observed_kwargs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">observed_kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">if</span> <span class="n">backend_kwargs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">backend_kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">datasets</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">groups</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">all_groups</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">datasets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">group</span><span class="p">))</span>
+            <span class="n">groups</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>  <span class="c1"># pylint: disable=bare-except</span>
+            <span class="k">pass</span>
+
+    <span class="k">if</span> <span class="n">var_names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">var_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">datasets</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">var_names</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">var_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">var_names</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">var_names</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">var_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">var_names</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">datasets</span><span class="p">]</span>
+
+    <span class="n">var_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">_var_names</span><span class="p">(</span><span class="nb">vars</span><span class="p">,</span> <span class="n">dataset</span><span class="p">)</span> <span class="k">for</span> <span class="nb">vars</span><span class="p">,</span> <span class="n">dataset</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">var_names</span><span class="p">,</span> <span class="n">datasets</span><span class="p">)]</span>
+
+    <span class="k">if</span> <span class="n">transform</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">datasets</span> <span class="o">=</span> <span class="p">[</span><span class="n">transform</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span> <span class="k">for</span> <span class="n">dataset</span> <span class="ow">in</span> <span class="n">datasets</span><span class="p">]</span>
+
+    <span class="n">datasets</span> <span class="o">=</span> <span class="n">get_coords</span><span class="p">(</span><span class="n">datasets</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
+    <span class="n">len_plots</span> <span class="o">=</span> <span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;plot.max_subplots&quot;</span><span class="p">]</span> <span class="o">//</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">groups</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">len_plots</span> <span class="o">=</span> <span class="n">len_plots</span> <span class="k">if</span> <span class="n">len_plots</span> <span class="k">else</span> <span class="mi">1</span>
+    <span class="n">dc_plotters</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="nb">list</span><span class="p">(</span><span class="n">xarray_var_iter</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">var_names</span><span class="o">=</span><span class="n">var</span><span class="p">,</span> <span class="n">combined</span><span class="o">=</span><span class="kc">True</span><span class="p">))[:</span><span class="n">len_plots</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">data</span><span class="p">,</span> <span class="n">var</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">datasets</span><span class="p">,</span> <span class="n">var_names</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="n">nvars</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dc_plotters</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">ngroups</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">groups</span><span class="p">)</span>
+
+    <span class="p">(</span><span class="n">figsize</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">linewidth</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="n">_scale_fig_size</span><span class="p">(</span><span class="n">figsize</span><span class="p">,</span> <span class="n">textsize</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">nvars</span><span class="p">,</span> <span class="n">ngroups</span><span class="p">)</span>
+
+    <span class="n">posterior_kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;plot_kwargs&quot;</span><span class="p">,</span> <span class="nb">dict</span><span class="p">())</span>
+    <span class="n">posterior_kwargs</span><span class="p">[</span><span class="s2">&quot;plot_kwargs&quot;</span><span class="p">][</span><span class="s2">&quot;color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vectorized_to_hex</span><span class="p">(</span>
+        <span class="n">posterior_kwargs</span><span class="p">[</span><span class="s2">&quot;plot_kwargs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;C0&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">posterior_kwargs</span><span class="p">[</span><span class="s2">&quot;plot_kwargs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;linewidth&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="p">)</span>
+    <span class="n">posterior_kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;hist_kwargs&quot;</span><span class="p">,</span> <span class="nb">dict</span><span class="p">())</span>
+    <span class="n">posterior_kwargs</span><span class="p">[</span><span class="s2">&quot;hist_kwargs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;alpha&quot;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
+
+    <span class="n">prior_kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;plot_kwargs&quot;</span><span class="p">,</span> <span class="nb">dict</span><span class="p">())</span>
+    <span class="n">prior_kwargs</span><span class="p">[</span><span class="s2">&quot;plot_kwargs&quot;</span><span class="p">][</span><span class="s2">&quot;color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vectorized_to_hex</span><span class="p">(</span>
+        <span class="n">prior_kwargs</span><span class="p">[</span><span class="s2">&quot;plot_kwargs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;C1&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">prior_kwargs</span><span class="p">[</span><span class="s2">&quot;plot_kwargs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;linewidth&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="p">)</span>
+    <span class="n">prior_kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;hist_kwargs&quot;</span><span class="p">,</span> <span class="nb">dict</span><span class="p">())</span>
+    <span class="n">prior_kwargs</span><span class="p">[</span><span class="s2">&quot;hist_kwargs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;alpha&quot;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
+
+    <span class="n">observed_kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;plot_kwargs&quot;</span><span class="p">,</span> <span class="nb">dict</span><span class="p">())</span>
+    <span class="n">observed_kwargs</span><span class="p">[</span><span class="s2">&quot;plot_kwargs&quot;</span><span class="p">][</span><span class="s2">&quot;color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vectorized_to_hex</span><span class="p">(</span>
+        <span class="n">observed_kwargs</span><span class="p">[</span><span class="s2">&quot;plot_kwargs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;C2&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">observed_kwargs</span><span class="p">[</span><span class="s2">&quot;plot_kwargs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;linewidth&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="p">)</span>
+    <span class="n">observed_kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;hist_kwargs&quot;</span><span class="p">,</span> <span class="nb">dict</span><span class="p">())</span>
+    <span class="n">observed_kwargs</span><span class="p">[</span><span class="s2">&quot;hist_kwargs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;alpha&quot;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
+
+    <span class="n">distcomparisonplot_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+        <span class="n">nvars</span><span class="o">=</span><span class="n">nvars</span><span class="p">,</span>
+        <span class="n">ngroups</span><span class="o">=</span><span class="n">ngroups</span><span class="p">,</span>
+        <span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">,</span>
+        <span class="n">dc_plotters</span><span class="o">=</span><span class="n">dc_plotters</span><span class="p">,</span>
+        <span class="n">legend</span><span class="o">=</span><span class="n">legend</span><span class="p">,</span>
+        <span class="n">groups</span><span class="o">=</span><span class="n">groups</span><span class="p">,</span>
+        <span class="n">prior_kwargs</span><span class="o">=</span><span class="n">prior_kwargs</span><span class="p">,</span>
+        <span class="n">posterior_kwargs</span><span class="o">=</span><span class="n">posterior_kwargs</span><span class="p">,</span>
+        <span class="n">observed_kwargs</span><span class="o">=</span><span class="n">observed_kwargs</span><span class="p">,</span>
+        <span class="n">backend_kwargs</span><span class="o">=</span><span class="n">backend_kwargs</span><span class="p">,</span>
+        <span class="n">show</span><span class="o">=</span><span class="n">show</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">backend</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">backend</span> <span class="o">=</span> <span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;plot.backend&quot;</span><span class="p">]</span>
+    <span class="n">backend</span> <span class="o">=</span> <span class="n">backend</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+    <span class="c1"># TODO: Add backend kwargs</span>
+    <span class="n">plot</span> <span class="o">=</span> <span class="n">get_plotting_function</span><span class="p">(</span><span class="s2">&quot;plot_dist_comparison&quot;</span><span class="p">,</span> <span class="s2">&quot;distcomparisonplot&quot;</span><span class="p">,</span> <span class="n">backend</span><span class="p">)</span>
+    <span class="n">axes</span> <span class="o">=</span> <span class="n">plot</span><span class="p">(</span><span class="o">**</span><span class="n">distcomparisonplot_kwargs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">axes</span></div>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+        <br/>
+        
+      
+    </p>
+    <p>
+        &copy; Copyright 2018, ArviZ devs.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.1.2.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>
